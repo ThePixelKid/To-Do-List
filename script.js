@@ -1,166 +1,133 @@
-// Element Selectors
-const todoValue = document.getElementById("todoText");
-const todoAlert = document.getElementById("Alert");
-const listItems = document.getElementById("list-items");
-const addUpdate = document.getElementById("AddUpdateClick");
+const todoValue = document.getElementById("todoInput");
+const addUpdate = document.getElementById("addUpdateButton");
+const todoList = document.getElementById("todoList");
+const themeSelect = document.getElementById("themeSelect");
+const filterSelect = document.getElementById("filterSelect");
 
-let updateText = null;
+let editIndex = null;
+let todos = JSON.parse(localStorage.getItem("todos")) || [];
 
-// LocalStorage Initialization
-let todo = JSON.parse(localStorage.getItem("todo-list"));
-if (!todo) {
-  todo = [];
-}
-
-// Save to Local Storage
-function setLocalStorage() {
-  localStorage.setItem("todo-list", JSON.stringify(todo));
-}
-
-// Set Alert Messages
-function setAlertMessage(message) {
-  todoAlert.removeAttribute("class");
-  todoAlert.innerText = message;
-  setTimeout(() => {
-    todoAlert.classList.add("toggleMe");
-  }, 1000);
-}
-
-// CREATE Todo
-function CreateToDoItems() {
-  if (todoValue.value === "") {
-    todoAlert.innerText = "Please enter your todo text!";
-    todoValue.focus();
-    return;
-  }
-
-  let isPresent = todo.some((element) => element.item === todoValue.value);
-  if (isPresent) {
-    setAlertMessage("This item already present in the list!");
-    return;
-  }
-
-  let li = document.createElement("li");
-  const todoItems = `
-    <div title="Double-click to mark complete" ondblclick="CompletedToDoItems(this)">
-      ${todoValue.value}
-    </div>
-    <div>
-      <img class="edit todo-controls" onclick="UpdateToDoItems(this)" src="/images/pencil.png" />
-      <img class="delete todo-controls" onclick="DeleteToDoItems(this)" src="/images/delete.png" />
-    </div>`;
-  li.innerHTML = todoItems;
-  listItems.appendChild(li);
-
-  todo.push({ item: todoValue.value, status: false });
-  setLocalStorage();
-
-  todoValue.value = "";
-  setAlertMessage("Todo item Created Successfully!");
-}
-
-// READ Todo
-function ReadToDoItems() {
-  todo.forEach((element) => {
-    let li = document.createElement("li");
-    let style = element.status ? "style='text-decoration: line-through'" : "";
-    const checkIcon = element.status
-      ? '<img class="todo-controls" src="/images/check-mark.png" />'
-      : "";
-
-    const editIcon = !element.status
-      ? '<img class="edit todo-controls" onclick="UpdateToDoItems(this)" src="/images/pencil.png" />'
-      : "";
-
-    li.innerHTML = `
-      <div ${style} title="Double-click to mark complete" ondblclick="CompletedToDoItems(this)">
-        ${element.item}
-        ${checkIcon}
-      </div>
-      <div>
-        ${editIcon}
-        <img class="delete todo-controls" onclick="DeleteToDoItems(this)" src="/images/delete.png" />
-      </div>`;
-    listItems.appendChild(li);
-  });
-}
-
-// UPDATE (Start Edit Mode)
-function UpdateToDoItems(e) {
-  const taskDiv = e.parentElement.parentElement.querySelector("div");
-  if (taskDiv.style.textDecoration === "") {
-    todoValue.value = taskDiv.innerText.trim();
-    updateText = taskDiv;
-    addUpdate.setAttribute("onclick", "UpdateOnSelectionItems()");
-    addUpdate.setAttribute("src", "/images/refresh.png");
-    todoValue.focus();
-  }
-}
-
-// UPDATE (Save Edit)
-function UpdateOnSelectionItems() {
-  let isPresent = todo.some((element) => element.item === todoValue.value);
-  if (isPresent) {
-    setAlertMessage("This item already present in the list!");
-    return;
-  }
-
-  todo.forEach((element) => {
-    if (element.item === updateText.innerText.trim()) {
-      element.item = todoValue.value;
+function renderTodos(filter = "all") {
+  todoList.innerHTML = "";
+  todos.forEach((todo, index) => {
+    if (
+      (filter === "active" && todo.completed) ||
+      (filter === "completed" && !todo.completed)
+    ) {
+      return;
     }
+
+    const li = document.createElement("li");
+    li.classList.add("todo-item");
+    if (todo.completed) li.classList.add("completed");
+
+    const text = document.createElement("span");
+    text.textContent = todo.text;
+    text.className = "todo-text";
+    text.onclick = () => toggleComplete(index);
+
+    const tag = document.createElement("span");
+    tag.textContent = todo.tag || "General";
+    tag.className = "todo-tag";
+
+    const editBtn = document.createElement("img");
+    editBtn.src = "/images/pencil.png";
+    editBtn.className = "todo-controls";
+    editBtn.onclick = () => selectForEdit(index);
+
+    const delBtn = document.createElement("img");
+    delBtn.src = "/images/delete.png";
+    delBtn.className = "todo-controls";
+    delBtn.onclick = () => deleteTodo(index);
+
+    li.append(text, tag, editBtn, delBtn);
+    todoList.appendChild(li);
   });
-  setLocalStorage();
+}
 
-  updateText.innerText = todoValue.value;
-  addUpdate.setAttribute("onclick", "CreateToDoItems()");
-  addUpdate.setAttribute("src", "/images/plus.png");
+function saveTodos() {
+  localStorage.setItem("todos", JSON.stringify(todos));
+}
+
+function CreateToDoItems() {
+  const value = todoValue.value.trim();
+  if (!value) return alert("Please enter a todo item.");
+
+  const tag = prompt("Enter a tag or category (optional):", "General") || "General";
+
+  todos.push({ text: value, completed: false, tag });
+  saveTodos();
+  renderTodos(filterSelect.value);
   todoValue.value = "";
-  setAlertMessage("Todo item Updated Successfully!");
 }
 
-// DELETE Todo
-function DeleteToDoItems(e) {
-  const deleteValue = e.parentElement.parentElement.querySelector("div").innerText.trim();
-  const confirmDelete = confirm(`Are you sure you want to delete "${deleteValue}"?`);
-  if (!confirmDelete) return;
-
-  e.parentElement.parentElement.classList.add("deleted-item");
-  todoValue.focus();
-
-  todo = todo.filter((element) => element.item !== deleteValue);
-
-  setTimeout(() => {
-    e.parentElement.parentElement.remove();
-  }, 1000);
-
-  setLocalStorage();
-  setAlertMessage("Todo item Deleted Successfully!");
+function selectForEdit(index) {
+  todoValue.value = todos[index].text;
+  addUpdate.innerText = "Update";
+  addUpdate.setAttribute("onclick", "UpdateOnSelectionItems()")
+  editIndex = index;
 }
 
-// COMPLETE Todo
-function CompletedToDoItems(e) {
-  const taskDiv = e.parentElement.querySelector("div");
-  if (taskDiv.style.textDecoration === "") {
-    const img = document.createElement("img");
-    img.src = "/images/check-mark.png";
-    img.className = "todo-controls";
-    taskDiv.style.textDecoration = "line-through";
-    taskDiv.appendChild(img);
+function UpdateOnSelectionItems() {
+  if (editIndex === null) return;
+  todos[editIndex].text = todoValue.value.trim();
+  saveTodos();
+  renderTodos(filterSelect.value);
+  todoValue.value = "";
+  addUpdate.innerText = "Add";
+  addUpdate.setAttribute("onclick", "CreateToDoItems()");
+  editIndex = null;
+}
 
-    const editIcon = e.parentElement.querySelector("img.edit");
-    if (editIcon) editIcon.remove();
+function deleteTodo(index) {
+  todos.splice(index, 1);
+  saveTodos();
+  renderTodos(filterSelect.value);
+}
 
-    todo.forEach((element) => {
-      if (element.item === taskDiv.innerText.trim()) {
-        element.status = true;
-      }
-    });
+function toggleComplete(index) {
+  todos[index].completed = !todos[index].completed;
+  saveTodos();
+  renderTodos(filterSelect.value);
+}
 
-    setLocalStorage();
-    setAlertMessage("Todo item Completed Successfully!");
+// Theme selection with transition
+function applyTheme(theme) {
+  document.body.classList.remove("light-theme", "dark-theme", "blue-theme");
+  document.body.classList.add(`${theme}-theme`);
+  localStorage.setItem("theme", theme);
+}
+
+themeSelect.addEventListener("change", (e) => {
+  applyTheme(e.target.value);
+});
+
+const savedTheme = localStorage.getItem("theme") || "light";
+themeSelect.value = savedTheme;
+applyTheme(savedTheme);
+
+// Press Enter to add item
+
+todoValue.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    if (addUpdate.innerText === "Add") {
+      CreateToDoItems();
+    } else {
+      UpdateOnSelectionItems();
+    }
   }
-}
+});
 
-// Initialize List
-ReadToDoItems();
+// Filter
+filterSelect.addEventListener("change", (e) => {
+  renderTodos(e.target.value);
+});
+
+// Preload images
+["/images/pencil.png", "/images/delete.png"].forEach((src) => {
+  const img = new Image();
+  img.src = src;
+});
+
+// Initial render
+renderTodos();
