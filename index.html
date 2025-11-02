@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enhanced Todo List</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-container">
+    <h1>Todo List</h1>
+
+    <div class="controls">
+      <input type="text" id="todoInput" placeholder="What needs to be done?" />
+      <button id="addUpdateButton" onclick="CreateToDoItems()">Add</button>
+    </div>
+
+    <div class="selectors">
+      <label for="themeSelect">Theme:</label>
+      <select id="themeSelect">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+        <option value="blue">Blue</option>
+      </select>
+
+      <label for="filterSelect">Filter:</label>
+      <select id="filterSelect">
+        <option value="all">All</option>
+        <option value="active">Active</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+
+    <ul id="todoList"></ul>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
